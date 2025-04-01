@@ -1,0 +1,82 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>GPT 스마트글래스</title>
+  <link rel="manifest" href="manifest.json">
+  <style>
+    body { font-family: sans-serif; background: #f0f0f0; padding: 20px; }
+    h2 { color: #333; }
+    textarea, input, button { width: 100%; margin-top: 10px; font-size: 16px; }
+    pre { background: #fff; padding: 10px; border: 1px solid #ccc; white-space: pre-wrap; min-height: 100px; }
+  </style>
+</head>
+<body>
+  <h2>GPT 스마트글래스 인터페이스</h2>
+  <input id="apikey" type="password" placeholder="OpenAI API Key">
+  <textarea id="prompt" placeholder="GPT에게 물어보세요!" rows="4"></textarea>
+  <button onclick="askGPT()">질문 보내기</button>
+  <pre id="response">응답이 여기에 표시됩니다.</pre>
+  <button onclick="connectBluetooth()">ESP32 연결</button>
+  <button onclick="sendToESP()">OLED로 전송</button>
+
+  <script>
+    let gptText = "";
+    let bluetoothDevice;
+    let bluetoothCharacteristic;
+
+    async function askGPT() {
+      const prompt = document.getElementById("prompt").value;
+      const apikey = document.getElementById("apikey").value;
+
+      const res = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": "Bearer " + apikey,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          model: "gpt-3.5-turbo",
+          messages: [{role: "user", content: prompt}]
+        })
+      });
+
+      const data = await res.json();
+      gptText = data.choices[0].message.content;
+      document.getElementById("response").textContent = gptText;
+    }
+
+    async function connectBluetooth() {
+      try {
+        bluetoothDevice = await navigator.bluetooth.requestDevice({
+          filters: [{ name: 'GPT_Glasses' }],
+          optionalServices: [0xFFE0]
+        });
+        const server = await bluetoothDevice.gatt.connect();
+        const service = await server.getPrimaryService(0xFFE0);
+        bluetoothCharacteristic = await service.getCharacteristic(0xFFE1);
+        alert("ESP32 연결 완료!");
+      } catch (error) {
+        alert("블루투스 연결 실패: " + error);
+      }
+    }
+
+    async function sendToESP() {
+      if (bluetoothCharacteristic) {
+        const encoder = new TextEncoder();
+        await bluetoothCharacteristic.writeValue(encoder.encode(gptText + "\n"));
+        alert("OLED로 전송 완료!");
+      } else {
+        alert("먼저 ESP32 연결을 해주세요.");
+      }
+    }
+
+    // PWA 설치 관련
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('service-worker.js')
+        .then(() => console.log('Service Worker Registered'));
+    }
+  </script>
+</body>
+</html>

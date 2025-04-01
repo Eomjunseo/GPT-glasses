@@ -1,0 +1,16 @@
+
+{
+  "name": "GPT 스마트글래스",
+  "short_name": "GPT글래스",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#f0f0f0",
+  "theme_color": "#333333",
+  "icons": [
+    {
+      "src": "icon.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    }
+  ]
+}
